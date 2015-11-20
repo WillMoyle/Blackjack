@@ -89,7 +89,27 @@ def play_hand():
     
     position = 4                        # current position in deck
 
-    player_score, position = players_round(player, position)
+    player_result, position = players_round(player, position)
+    
+    if player_result == -1:
+        print "BUST: dealer wins"
+        return -1
+        
+    dealer_result = dealers_round(dealer, position)
+    
+    if dealer_result == -1:
+        print "DEALER BUST: player wins"
+        return 1
+    elif dealer_result > player_result:
+        print "DEALER WINS: " + str(dealer_result) + " beats " + str(player_result)
+        return -1
+    elif dealer_result == player_result:
+        print "DRAW: both players have " + str(dealer_result)
+        return 0
+    else:
+        print "PLAYER WINS: " + str(player_result) + " beats " + str(dealer_result)
+        return 1        
+    
 
     return 0
 
@@ -101,7 +121,7 @@ def welcome_message():
     The aim of the game is to beat the dealer's hand by getting a hand 
     with a score closer to 21 but not over. Aces are worth 1 or 11 points. 
     Tens, Jacks, Queens and Kings are worth 10 points. Dealer must draw on
-    16 and stand on all 17's."
+    16 and stand on all soft 17's."
     
     Good luck!"""
     
@@ -163,18 +183,57 @@ def players_round(player, position):
         print "BLACKJACK!"
         return 21, position
     
-    play = True
-    while(play):
+    while(True):
         action = raw_input("Do you wish to stick (S) or hit (H)?")
         if action == 'H' or action == 'h':
+            player += [DECK[position]]
+            player_scores = calculate_score(player)            
             position += 1
-            if player[0] > 21:
+            print "\nYour hand: " + display_hand(player)
+            print "which is worth: " + display_scores(player_scores)
+            if player_scores[0] > 21:
                 return -1, position
-        elif action == 'S' or action = 's':
-            if player[0]
+            if 21 in player_scores:
+                return 21, position
+        elif action == 'S' or action == 's':
+            if len(player_scores) > 1 and player_scores[1] <= 21:           
+                return player_scores[1], position
+            else:
+                return player_scores[0], position
         else:
             print "Invalid input"
-            continue
+    
+def dealers_round(dealer, position):
+    dealers_scores = calculate_score(dealer)
+    
+    print "\nThe dealer's hand: " + display_hand(dealer)
+    print "which is worth: " + display_scores(calculate_score(dealer))
+    
+    if 21 in dealers_scores:
+        print "Dealer has natural 21"
+        return 21
         
+    while(True):
+        dealers_scores = calculate_score(dealer)
+        if dealers_scores[0] > 21:
+            return -1
+        elif dealer_sticks(dealers_scores):
+            score = dealers_scores[0]
+            for i in dealers_scores:
+                if i <= 21:                
+                    score = i
+            print "\nDealer sticks on " + str(score)
+            return score
+        else:
+            print "\nDealer hits"           
+            dealer += [DECK[position]]
+            dealer_scores = calculate_score(dealer)
+            position += 1
+            print "The dealer's hand: " + display_hand(dealer)
+            print "which is worth: " + display_scores(calculate_score(dealer))
+            
+            
+def dealer_sticks(s):
+    return 17 in s or 18 in s or 19 in s or 20 in s or 21 in s
         
 play_blackjack()
