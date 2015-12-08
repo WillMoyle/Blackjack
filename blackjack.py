@@ -154,6 +154,44 @@ def play_blackjack():
     print "\nThanks for playing!"
     print "\n*******************************************"
 
+# alternative main function outputing results for all strategies, multipliers
+def play_blackjack_evaluations():
+    STRATEGY_NAMES.remove("Manual")
+    print "Soft, Multiplier, Strategy, Wins, Draws, Losses, Blackjack wins, Win Rate, Winnings"
+    for multiplier in [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9, 10]:
+        for soft in [True, False]:
+            bet = 10
+            for strategy in STRATEGY_NAMES:
+                win = 0
+                blackjacks = 0
+                loss = 0
+                winnings = 0
+                draw = 0
+                for _ in range(10000):
+                    result = play_hand(False, soft, strategy)
+                    if result == -1:
+                        loss += 1
+                        winnings -= bet
+                    elif result == 0:
+                        draw += 1
+                    elif result == 1:
+                        win += 1
+                        winnings += bet
+                    elif result == 2:
+                        win += 1
+                        blackjacks += 1
+                        winnings += (bet * multiplier)
+                output = str(soft) + ", " + str(multiplier) + ", "
+                output += str(strategy) + ", " + str(win) + ", " + str(draw) + ", "
+                output += str(loss) + ", " + str(blackjacks) + ", " + str(win / 10)
+                output += "%, "
+                if winnings >= 0:
+                    output += "$" + ("%.2f" % winnings)
+                else:
+                    output += "-$" + ("%.2f" % -winnings)
+                print output
+
+
 ###############################################################################
 ##### AUXILLIARY FUNCTIONS
 ###############################################################################
