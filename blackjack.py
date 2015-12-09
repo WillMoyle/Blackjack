@@ -3,12 +3,13 @@
 ###############################################################################
 
 # Author: Will Moyle
-# Last Modified: 20 Nov 2015
+# Last Modified: 09 Dec 2015
 
 ###############################################################################
 ##### IMPORT STATEMENTS
 ###############################################################################
 
+from __future__ import division
 import random
 
 ###############################################################################
@@ -38,12 +39,20 @@ CARD_NAMES = {
 # the names of the various strategies
 STRATEGY_NAMES = [
     "Manual",
+    "Soft 12",
+    "Soft 13",
+    "Soft 14",
+    "Soft 15",
     "Soft 16",
     "Soft 17",
     "Soft 18",
     "Soft 19",
     "Soft 20",
     "Soft 21",
+    "Hard 12",
+    "Hard 13",
+    "Hard 14",
+    "Hard 15",
     "Hard 16",
     "Hard 17",
     "Hard 18",
@@ -72,7 +81,7 @@ def play_blackjack():
     print "\n*******************************************"
     
     output = "What is your strategy going to be? "
-    output += "(Manual / Soft 16-21 / Hard 16-21) "
+    output += "(Manual / Soft 12-21 / Hard 12-21) "
     strategy = raw_input(output)
     while not strategy in STRATEGY_NAMES:
         strategy = raw_input("Invalid input, try again: ")
@@ -157,39 +166,28 @@ def play_blackjack():
 # alternative main function outputing results for all strategies, multipliers
 def play_blackjack_evaluations():
     STRATEGY_NAMES.remove("Manual")
-    print "Soft, Multiplier, Strategy, Wins, Draws, Losses, Blackjack wins, Win Rate, Winnings"
-    for multiplier in [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9, 10]:
-        for soft in [True, False]:
-            bet = 10
-            for strategy in STRATEGY_NAMES:
-                win = 0
-                blackjacks = 0
-                loss = 0
-                winnings = 0
-                draw = 0
-                for _ in range(10000):
-                    result = play_hand(False, soft, strategy)
-                    if result == -1:
-                        loss += 1
-                        winnings -= bet
-                    elif result == 0:
-                        draw += 1
-                    elif result == 1:
-                        win += 1
-                        winnings += bet
-                    elif result == 2:
-                        win += 1
-                        blackjacks += 1
-                        winnings += (bet * multiplier)
-                output = str(soft) + ", " + str(multiplier) + ", "
-                output += str(strategy) + ", " + str(win) + ", " + str(draw) + ", "
-                output += str(loss) + ", " + str(blackjacks) + ", " + str(win / 10)
-                output += "%, "
-                if winnings >= 0:
-                    output += "$" + ("%.2f" % winnings)
-                else:
-                    output += "-$" + ("%.2f" % -winnings)
-                print output
+    NUM_ROUNDS = 100000
+    print "Soft, Strategy, Blackjack Rate, Win Rate, Loss Rate"
+    for soft in [True, False]:
+        for strategy in STRATEGY_NAMES:
+            win = 0
+            blackjacks = 0
+            loss = 0
+            for _ in range(NUM_ROUNDS):
+                result = play_hand(False, soft, strategy)
+                if result == -1:
+                    loss += 1
+                elif result == 1:
+                    win += 1
+                elif result == 2:
+                    win += 1
+                    blackjacks += 1
+            output = str(soft) + ", "
+            output += str(strategy) + ", "
+            output += ("%.3f" % (blackjacks * 100 / NUM_ROUNDS)) + "%, "
+            output += ("%.3f" % (win * 100 / NUM_ROUNDS)) + "%, "
+            output += ("%.3f" % (loss * 100 / NUM_ROUNDS)) + "%"
+            print output
 
 
 ###############################################################################
@@ -218,9 +216,20 @@ def play_hand(verbose=True, soft=True, strategy="Manual"):
         return -1
     
     # dealer's turn    
-    dealer_result = dealers_round(dealer, position, verbose, soft)
-    
-    if dealer_result == -1:
+    dealer_result, is_blackjack = dealers_round(dealer, position, verbose, soft)
+
+    if dealer_result == player_result:
+        if is_blackjack and position != 4:
+            print_verbose(verbose, "DEALER WINS with natural 21")
+            return -1
+        print_verbose(verbose, "DRAW: both players have " + str(dealer_result))
+        return 0
+    elif player_result == 21 and position == 4:
+        output = "PLAYER WINS: " + str(player_result)
+        output += " beats " + str(dealer_result)
+        print_verbose(verbose, output)
+        return 2
+    elif dealer_result == -1:
         print_verbose(verbose, "DEALER BUST: player wins")
         return 1
     elif dealer_result > player_result:
@@ -228,17 +237,11 @@ def play_hand(verbose=True, soft=True, strategy="Manual"):
         output += " beats " + str(player_result)
         print_verbose(verbose, output)
         return -1
-    elif dealer_result == player_result:
-        print_verbose(verbose, "DRAW: both players have " + str(dealer_result))
-        return 0
     else:
         output = "PLAYER WINS: " + str(player_result)
         output += " beats " + str(dealer_result)
         print_verbose(verbose, output)
-        if position == 4:
-            return 2
-        else:
-            return 1        
+        return 1
 
 # prints a welcome message with the game's rules
 def welcome_message():
@@ -343,6 +346,14 @@ def player_sticks(s, strategy="Manual"):
                 return True
             else:
                 print "Invalid input"
+    elif strategy == "Hard 12":
+        return s[0] in range(12, 22)
+    elif strategy == "Hard 13":
+        return s[0] in range(13, 22)
+    elif strategy == "Hard 14":
+        return s[0] in range(14, 22)
+    elif strategy == "Hard 15":
+        return s[0] in range(15, 22)
     elif strategy == "Hard 16":
         return s[0] in range(16, 22)
     elif strategy == "Hard 17":
@@ -355,7 +366,15 @@ def player_sticks(s, strategy="Manual"):
         return s[0] in range(20, 22)
     elif strategy == "Hard 21":
         return s[0] == 21
-    elif strategy == "Soft 16":    
+    elif strategy == "Soft 12":
+        return 12 in s or 13 in s or 14 in s or 15 in s or 16 in s or 17 in s or 18 in s or 19 in s or 20 in s or 21 in s
+    elif strategy == "Soft 13":
+        return 13 in s or 14 in s or 15 in s or 16 in s or 17 in s or 18 in s or 19 in s or 20 in s or 21 in s
+    elif strategy == "Soft 14":
+        return 14 in s or 15 in s or 16 in s or 17 in s or 18 in s or 19 in s or 20 in s or 21 in s
+    elif strategy == "Soft 15":
+        return 15 in s or 16 in s or 17 in s or 18 in s or 19 in s or 20 in s or 21 in s
+    elif strategy == "Soft 16":
         return 16 in s or 17 in s or 18 in s or 19 in s or 20 in s or 21 in s
     elif strategy == "Soft 17":    
         return 17 in s or 18 in s or 19 in s or 20 in s or 21 in s
@@ -378,19 +397,19 @@ def dealers_round(dealer, position, verbose=True, soft=True):
     
     if 21 in dealers_scores:
         print_verbose(verbose, "Dealer has natural 21")
-        return 21
+        return 21, True
         
     while(True):
         dealers_scores = calculate_score(dealer)
         if dealers_scores[0] > 21:
-            return -1
+            return -1, False
         elif dealer_sticks(dealers_scores, soft):
             score = dealers_scores[0]
             for i in dealers_scores:
                 if i <= 21:                
                     score = i
             print_verbose(verbose, "\nDealer sticks on " + str(score))
-            return score
+            return score, False
         else:
             dealer += [DECK[position]]
             position += 1
